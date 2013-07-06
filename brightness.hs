@@ -1,5 +1,8 @@
 import Control.Applicative
+import Control.Monad
 import Control.Exception
+import Data.List
+import Data.Function
 import System.Environment
 import System.IO
 import System.Process
@@ -7,10 +10,25 @@ import System.Process
 brightnessPath = "/sys/class/leds/asus::kbd_backlight/brightness"
 maxBrightnessPath = "/sys/class/leds/asus::kbd_backlight/max_brightness"
 
+stripRightParen ")" = Just ""
+stripRightParen (x:xs) = (x :) <$> stripRightParen xs
+stripRightParen _ = Nothing
+
+stripParens ('(' : xs) = stripRightParen xs
+stripParens _ = Nothing
+
 msg str = do
   putStrLn str
-  system $ "notify-send " ++ show str
-  return ()
+  userLines <- lines <$> readProcess "who" [] ""
+  forM_ (nubBy ((==) `on` head . words) userLines) $ \userLine ->
+    -- Example line:
+    -- "eyal     tty8         2013-07-07 01:14 (:0)"
+    case words userLine of
+    [user, tty, date, time, parenDisp] ->
+      case stripParens parenDisp of
+      Just disp -> system $ "DISPLAY=" ++ disp ++ " sudo -u " ++ user ++ " notify-send " ++ show str
+      _ -> fail $ "Invalid display in who output: " ++ show parenDisp ++ " (" ++ userLine ++ ")"
+    _ -> fail $ "Invalid line in who output (" ++ userLine ++ ")"
 
 parse :: Read a => FilePath -> IO a
 parse filePath = do
