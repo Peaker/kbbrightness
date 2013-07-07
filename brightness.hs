@@ -26,7 +26,7 @@ msg str = do
     case words userLine of
     [user, tty, date, time, parenDisp] ->
       case stripParens parenDisp of
-      Just disp -> system $ "DISPLAY=" ++ disp ++ " sudo -u " ++ user ++ " notify-send " ++ show str
+      Just disp -> system $ "DISPLAY=" ++ disp ++ " sudo -u " ++ user ++ " notify-send -t 300 " ++ show str
       _ -> fail $ "Invalid display in who output: " ++ show parenDisp ++ " (" ++ userLine ++ ")"
     _ -> fail $ "Invalid line in who output (" ++ userLine ++ ")"
 
